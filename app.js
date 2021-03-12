@@ -14,10 +14,16 @@ const client = new tmi.Client({
 client.connect();
 
 client.on('message', (channel, tags, message, self) => {
+
+    if (tags['display-name'].toLowerCase().endsWith('bot')){
+        console.info('dropped user: '+tags['display-name']);
+        return;
+    }
+
+
     const words = message.split(' ');
     const wordsSet = new Set();
     words.reduce((_, e) => wordsSet.add(e), null);
-    
 
     if (wordsSet.size < 3){
         console.info('worthless text: '+message);
@@ -38,6 +44,12 @@ client.on('message', (channel, tags, message, self) => {
 
     //message = message.toLowerCase();
     message = message.replace(/</g, "&lt;").replace(/>/g, "&gt;");
+
+    const messageValue = getScores(message);
+    if (messageValue.readingTime < 1.0 || messageValue.automatedReadabilityIndex < 1.0 ){
+        console.info('dropped low value message: ' + message);
+        return;
+    }
 
     const oldChatArray = chatElement.innerHTML.split('<br>');
     if (oldChatArray.length > 200) {
