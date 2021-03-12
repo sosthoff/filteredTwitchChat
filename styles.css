@@ -1,0 +1,19 @@
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: 'Courier New', Courier, monospace;
+}
+.wrapper{
+    margin: 2rem;
+}
+
+#chat {
+    margin: 2rem;
+    font-size: 2vmin;
+    color: black;
+    white-space: pre-line;
+}
