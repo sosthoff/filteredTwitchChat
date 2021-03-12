@@ -20,13 +20,13 @@ client.on('message', (channel, tags, message, self) => {
     
 
     if (wordsSet.size < 3){
-        console.log('worthless text: '+message);
+        console.info('worthless text: '+message);
         return;
     }
     var directedText = '';
     if (message.includes('@')){
         if (!message.toLowerCase().includes('@'+channelParam.toLowerCase())){
-            console.log('message to someone else: '+message);
+            console.info('message to someone else: '+message);
             return;
         } else {
             directedText = 'font-style: italic;';
@@ -39,7 +39,14 @@ client.on('message', (channel, tags, message, self) => {
     //message = message.toLowerCase();
     message = message.replace(/</g, "&lt;").replace(/>/g, "&gt;");
 
-    chatElement.innerHTML += '\r\n' 
+    const oldChatArray = chatElement.innerHTML.split('<br>');
+    if (oldChatArray.length > 200) {
+        oldChatArray.shift();
+    }
+    const oldChat = oldChatArray.join('<br>');
+
+    chatElement.innerHTML = oldChat
+        + '\r\n' 
         + '<p style="display:inline; color:' 
             + tags['color'] +'";><b>' 
             + tags['display-name'] 
@@ -47,6 +54,6 @@ client.on('message', (channel, tags, message, self) => {
         + '<p style="display:inline;'+ directedText + '">'
         + message 
         + '</p>'
-        + '\r\n';
+        + '<br>';
     window.scrollTo(0,document.body.scrollHeight);
 })
