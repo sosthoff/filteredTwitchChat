@@ -14,9 +14,15 @@ const client = new tmi.Client({
 client.connect();
 
 client.on('message', (channel, tags, message, self) => {
-
+    
     if (tags['display-name'].toLowerCase().endsWith('bot')){
         console.info('dropped user: '+tags['display-name']);
+        return;
+    }
+
+    const repeatSplit = message.split(message.substr(0,8));
+    if (repeatSplit.length > 3) {
+        console.info('deleted excessive repeat: '+message);
         return;
     }
 
@@ -25,7 +31,7 @@ client.on('message', (channel, tags, message, self) => {
     const wordsSet = new Set();
     words.reduce((_, e) => wordsSet.add(e), null);
 
-    if (wordsSet.size < 3){
+    if (wordsSet.size < 4){
         console.info('worthless text: '+message);
         return;
     }
@@ -39,7 +45,7 @@ client.on('message', (channel, tags, message, self) => {
         }
     }
 
-    let filter = /POGGERS|LULW|LUL|KEKW|KappaClaus|KappaPride|PepeLaugh|Pog/gi;
+    let filter = /POGGERS|LULW|LUL|KEKW|KappaClaus|KappaPride|PepeLaugh|Pog|OMEGA|OMEGALOL|monkaW/gi;
     message = message.replace(filter, '');
 
     //message = message.toLowerCase();
