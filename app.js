@@ -12,7 +12,7 @@ const client = new tmi.Client({
 
 client.connect();
 
-// ---- small helper to make URLs clickable ----
+// ---- helper to make URLs clickable ----
 function linkify(text) {
     const urlRegex = /(https?:\/\/[^\s]+)/g;
     return text.replace(urlRegex, url =>
@@ -30,9 +30,29 @@ function getOutlineShadowColor(hexColor) {
     return brightness > 200 ? 'black' : 'white';
 }
 
+// ---- dynamic beep using Web Audio API ----
+function playBeep() {
+    try {
+        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        const oscillator = audioCtx.createOscillator();
+        const gainNode = audioCtx.createGain();
+
+        oscillator.connect(gainNode);
+        gainNode.connect(audioCtx.destination);
+
+        oscillator.type = 'sine';
+        oscillator.frequency.setValueAtTime(440, audioCtx.currentTime);
+        gainNode.gain.setValueAtTime(0.2, audioCtx.currentTime);
+
+        oscillator.start();
+        oscillator.stop(audioCtx.currentTime + 0.2); // 0.2s beep
+    } catch (e) {
+        console.warn("Beep could not play:", e);
+    }
+}
+
 // ---- alert setup ----
-const alertSound = new Audio('alert.mp3'); // replace with your sound file
-let lastActivity = Date.now();
+let lastActivity = 0;  // initialize to 0 to ping on first message
 const alertThreshold = 5 * 60 * 1000; // 5 minutes inactivity
 
 client.on('message', (channel, tags, message, self) => {
@@ -49,7 +69,7 @@ client.on('message', (channel, tags, message, self) => {
     // ---- trigger inactivity alert ----
     const now = Date.now();
     if (!immune && now - lastActivity > alertThreshold) {
-        alertSound.play().catch(e => console.warn("Alert sound blocked by browser:", e));
+        playBeep(); // dynamic beep
     }
     lastActivity = now;
 
