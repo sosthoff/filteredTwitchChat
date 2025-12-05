@@ -5,7 +5,6 @@ const urlParams = new URLSearchParams(queryString);
 const channelParam = urlParams.get('channel');
 console.log(channelParam);
 
-
 const client = new tmi.Client({
     connction: {reconnect: true},
     channels: [channelParam],
@@ -13,12 +12,22 @@ const client = new tmi.Client({
 
 client.connect();
 
-// ---- small helper to make URLs clickable ----
+// ---- helper to make URLs clickable ----
 function linkify(text) {
     const urlRegex = /(https?:\/\/[^\s]+)/g;
     return text.replace(urlRegex, url =>
         `<a href="${url}" target="_blank" rel="noopener noreferrer">${url}</a>`
     );
+}
+
+// ---- helper to compute contrasting outline color ----
+function getOutlineShadowColor(hexColor) {
+    hexColor = hexColor.replace('#', '');
+    const r = parseInt(hexColor.substring(0,2), 16);
+    const g = parseInt(hexColor.substring(2,4), 16);
+    const b = parseInt(hexColor.substring(4,6), 16);
+    const brightness = (r*299 + g*587 + b*114) / 1000;
+    return brightness > 200 ? 'black' : 'white';
 }
 
 client.on('message', (channel, tags, message, self) => {
@@ -99,19 +108,29 @@ client.on('message', (channel, tags, message, self) => {
     // Highlight if sender is the channel owner
     const highlightStyle = isStreamer ? 'background-color: #fff3a0; padding: 4px 6px; border-radius: 4px;' : '';
     const nameColor = tags['color'] || '#ffffff';
+    const outlineColor = getOutlineShadowColor(nameColor);
+
+    // full outline for nickname using -webkit-text-stroke and multi-direction text-shadow
+    const outlineCSS = `
+        -webkit-text-stroke: 1px ${outlineColor};
+        -webkit-text-fill-color: ${nameColor};
+        text-shadow:
+            -1px -1px 0 ${outlineColor},
+             0px -1px 0 ${outlineColor},
+             1px -1px 0 ${outlineColor},
+            -1px  0px 0 ${outlineColor},
+             1px  0px 0 ${outlineColor},
+            -1px  1px 0 ${outlineColor},
+             0px  1px 0 ${outlineColor},
+             1px  1px 0 ${outlineColor};
+    `;
 
     chatElement.innerHTML = oldChat
         + '\r\n'
         + `<div style="${highlightStyle}">`
-        + '<p style="display:inline; color:' 
-            + nameColor +'";><b>' 
-            + tags['display-name'] 
-        + ':</b></p> '
-        + '<p style="display:inline;'+ directedText + '">'
-        + message 
-        + '</p>'
-        + '</div>'
-        + '<br>';
+        + `<p style="display:inline; ${outlineCSS}"><b>${tags['display-name']}:</b></p>`
+        + `<p style="display:inline; ${directedText}">${message}</p>`
+        + '</div><br>';
 
     window.scrollTo(0,document.body.scrollHeight);
 });
