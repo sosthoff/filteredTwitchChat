@@ -31,9 +31,19 @@ function getOutlineShadowColor(hexColor) {
 }
 
 // ---- dynamic beep using Web Audio API ----
+let audioCtx;
+
 function playBeep() {
     try {
-        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        if (!audioCtx) {
+            audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        }
+
+        // resume if suspended (autoplay restriction)
+        if (audioCtx.state === 'suspended') {
+            audioCtx.resume();
+        }
+
         const oscillator = audioCtx.createOscillator();
         const gainNode = audioCtx.createGain();
 
@@ -42,7 +52,7 @@ function playBeep() {
 
         oscillator.type = 'sine';
         oscillator.frequency.setValueAtTime(440, audioCtx.currentTime);
-        gainNode.gain.setValueAtTime(0.2, audioCtx.currentTime);
+        gainNode.gain.setValueAtTime(0.5, audioCtx.currentTime); // volume
 
         oscillator.start();
         oscillator.stop(audioCtx.currentTime + 0.2); // 0.2s beep
@@ -50,6 +60,13 @@ function playBeep() {
         console.warn("Beep could not play:", e);
     }
 }
+
+// Unlock audio context on first user interaction
+window.addEventListener('click', () => {
+    if (audioCtx && audioCtx.state === 'suspended') {
+        audioCtx.resume();
+    }
+}, { once: true });
 
 // ---- alert setup ----
 let lastActivity = 0;  // initialize to 0 to ping on first message
