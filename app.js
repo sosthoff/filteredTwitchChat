@@ -13,6 +13,14 @@ const client = new tmi.Client({
 
 client.connect();
 
+// ---- small helper to make URLs clickable ----
+function linkify(text) {
+    const urlRegex = /(https?:\/\/[^\s]+)/g;
+    return text.replace(urlRegex, url =>
+        `<a href="${url}" target="_blank" rel="noopener noreferrer">${url}</a>`
+    );
+}
+
 client.on('message', (channel, tags, message, self) => {
     
     if (tags['display-name'].toLowerCase().endsWith('bot')){
@@ -48,9 +56,13 @@ client.on('message', (channel, tags, message, self) => {
     let filter = /POGGERS|LULW|LUL|KEKW|KappaClaus|KappaPride|PepeLaugh|Pog|OMEGA|OMEGALOL|monkaW/gi;
     message = message.replace(filter, '');
 
-    //message = message.toLowerCase();
+    // escape HTML (so inserted message is safe)
     message = message.replace(/</g, "&lt;").replace(/>/g, "&gt;");
 
+    // make URLs clickable (this injects <a> tags into the escaped string)
+    message = linkify(message);
+
+    //message = message.toLowerCase();
     const messageValue = getScores(message);
     if (messageValue.readingTime < 1.0 || messageValue.automatedReadabilityIndex < 1.0 ){
         console.info('dropped low value message: ' + message);
@@ -63,15 +75,24 @@ client.on('message', (channel, tags, message, self) => {
     }
     const oldChat = oldChatArray.join('<br>');
 
+    // Highlight if sender is the channel owner (Option A: full yellow block)
+    const isStreamer = (tags['display-name'] && tags['display-name'].toLowerCase() === channelParam.toLowerCase());
+    const highlightStyle = isStreamer ? 'background-color: #fff3a0; padding: 4px 6px; border-radius: 4px;' : '';
+
+    // safe fallback for name color
+    const nameColor = tags['color'] || '#ffffff';
+
     chatElement.innerHTML = oldChat
-        + '\r\n' 
+        + '\r\n'
+        + `<div style="${highlightStyle}">`
         + '<p style="display:inline; color:' 
-            + tags['color'] +'";><b>' 
+            + nameColor +'";><b>' 
             + tags['display-name'] 
         + ':</b></p> '
         + '<p style="display:inline;'+ directedText + '">'
         + message 
         + '</p>'
+        + '</div>'
         + '<br>';
     window.scrollTo(0,document.body.scrollHeight);
-})
+});
