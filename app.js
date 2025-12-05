@@ -7,7 +7,7 @@ console.log(channelParam);
 
 
 const client = new tmi.Client({
-    cconnection: { reconnect: true }
+    connction: {reconnect: true},
     channels: [channelParam],
 });
 
