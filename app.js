@@ -11,38 +11,40 @@ const client = new tmi.Client({
     channels: [channelParam],
 });
 
-client.connect();
-
-// ---- small helper to make URLs clickable ----
-function linkify(text) {
-    const urlRegex = /(https?:\/\/[^\s]+)/g;
-    return text.replace(urlRegex, url =>
-        `<a href="${url}" target="_blank" rel="noopener noreferrer">${url}</a>`
-    );
-}
-
 client.on('message', (channel, tags, message, self) => {
-    
-    if (tags['display-name'].toLowerCase().endsWith('bot')){
+
+    // Check if message contains a URL
+    const urlRegex = /(https?:\/\/[^\s]+)/i;
+    const hasLink = urlRegex.test(message);
+
+    // drop bots (unless message has a link)
+    if (!hasLink && tags['display-name'].toLowerCase().endsWith('bot')){
         console.info('dropped user: '+tags['display-name']);
         return;
     }
 
-    const repeatSplit = message.split(message.substr(0,8));
-    if (repeatSplit.length > 3) {
-        console.info('deleted excessive repeat: '+message);
-        return;
+    // excessive repeat (unless message has a link)
+    if (!hasLink) {
+        const repeatSplit = message.split(message.substr(0,8));
+        if (repeatSplit.length > 3) {
+            console.info('deleted excessive repeat: '+message);
+            return;
+        }
     }
 
+    // worthless short messages (unless message has a link)
+    if (!hasLink) {
+        const words = message.split(' ');
+        const wordsSet = new Set();
+        words.reduce((_, e) => wordsSet.add(e), null);
 
-    const words = message.split(' ');
-    const wordsSet = new Set();
-    words.reduce((_, e) => wordsSet.add(e), null);
-
-    if (wordsSet.size < 4){
-        console.info('worthless text: '+message);
-        return;
+        if (wordsSet.size < 4){
+            console.info('worthless text: '+message);
+            return;
+        }
     }
+
+    // directed messages
     var directedText = '';
     if (message.includes('@')){
         if (!message.toLowerCase().includes('@'+channelParam.toLowerCase())){
@@ -53,18 +55,20 @@ client.on('message', (channel, tags, message, self) => {
         }
     }
 
-    let filter = /POGGERS|LULW|LUL|KEKW|KappaClaus|KappaPride|PepeLaugh|Pog|OMEGA|OMEGALOL|monkaW/gi;
-    message = message.replace(filter, '');
+    // emote filtering (unless message has a link)
+    if (!hasLink) {
+        let filter = /POGGERS|LULW|LUL|KEKW|KappaClaus|KappaPride|PepeLaugh|Pog|OMEGA|OMEGALOL|monkaW/gi;
+        message = message.replace(filter, '');
+    }
 
-    // escape HTML (so inserted message is safe)
+    // escape HTML
     message = message.replace(/</g, "&lt;").replace(/>/g, "&gt;");
 
-    // make URLs clickable (this injects <a> tags into the escaped string)
+    // make URLs clickable
     message = linkify(message);
 
-    //message = message.toLowerCase();
     const messageValue = getScores(message);
-    if (messageValue.readingTime < 1.0 || messageValue.automatedReadabilityIndex < 1.0 ){
+    if (!hasLink && (messageValue.readingTime < 1.0 || messageValue.automatedReadabilityIndex < 1.0)){
         console.info('dropped low value message: ' + message);
         return;
     }
@@ -75,11 +79,8 @@ client.on('message', (channel, tags, message, self) => {
     }
     const oldChat = oldChatArray.join('<br>');
 
-    // Highlight if sender is the channel owner (Option A: full yellow block)
     const isStreamer = (tags['display-name'] && tags['display-name'].toLowerCase() === channelParam.toLowerCase());
     const highlightStyle = isStreamer ? 'background-color: #fff3a0; padding: 4px 6px; border-radius: 4px;' : '';
-
-    // safe fallback for name color
     const nameColor = tags['color'] || '#ffffff';
 
     chatElement.innerHTML = oldChat
@@ -96,3 +97,4 @@ client.on('message', (channel, tags, message, self) => {
         + '<br>';
     window.scrollTo(0,document.body.scrollHeight);
 });
+
