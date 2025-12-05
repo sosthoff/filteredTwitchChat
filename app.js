@@ -12,7 +12,7 @@ const client = new tmi.Client({
 
 client.connect();
 
-// ---- helper to make URLs clickable ----
+// ---- small helper to make URLs clickable ----
 function linkify(text) {
     const urlRegex = /(https?:\/\/[^\s]+)/g;
     return text.replace(urlRegex, url =>
@@ -30,6 +30,11 @@ function getOutlineShadowColor(hexColor) {
     return brightness > 200 ? 'black' : 'white';
 }
 
+// ---- alert setup ----
+const alertSound = new Audio('alert.mp3'); // replace with your sound file
+let lastActivity = Date.now();
+const alertThreshold = 5 * 60 * 1000; // 5 minutes inactivity
+
 client.on('message', (channel, tags, message, self) => {
 
     // check if message has a URL
@@ -40,6 +45,13 @@ client.on('message', (channel, tags, message, self) => {
 
     // immune messages bypass all filters
     const immune = hasLink || isStreamer;
+
+    // ---- trigger inactivity alert ----
+    const now = Date.now();
+    if (!immune && now - lastActivity > alertThreshold) {
+        alertSound.play().catch(e => console.warn("Alert sound blocked by browser:", e));
+    }
+    lastActivity = now;
 
     // drop bots (unless immune)
     if (!immune && tags['display-name'].toLowerCase().endsWith('bot')){
